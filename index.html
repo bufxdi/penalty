@@ -1,0 +1,3400 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>Penalty Shootout</title>
+
+<style>
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 10px;
+    background: #f5f5f5;
+}
+
+h1 {
+    text-align: center;
+    font-size: 27px;
+    font-weight: bold;
+    margin: 10px 0 15px 0;
+}
+
+button {
+    font-size: 16px;
+    padding: 8px 12px;
+    margin-right: 5px;
+    margin-bottom: 10px;
+}
+
+button:disabled {
+    background: #cccccc;
+    color: #777;
+    cursor: default;
+}
+
+.kotak-wrapper {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.tournament-input {
+    width: 100%;
+    box-sizing: border-box;
+    height: 40px;
+    margin-bottom: 5px;
+    border: 2px solid black;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.tournament-input.locked {
+    background: #eeeeee;
+}
+
+.kotak {
+    display: grid;
+    grid-template-columns: 2fr repeat(5, 1fr);
+    grid-template-rows: 60px 60px;
+    width: 100%;
+    background: white;
+    border: 2px solid black;
+    box-sizing: border-box;
+}
+
+.cell {
+    border-right: 1px solid black;
+    border-bottom: 1px solid black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.text-cell {
+    padding: 3px;
+}
+
+.text-cell input {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    border: none;
+    outline: none;
+    font-size: 17px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.text-cell input.locked {
+    background: #eeeeee;
+}
+
+.choice-cell {
+    position: relative;
+    cursor: pointer;
+    font-size: 30px;
+}
+
+.choice-cell:hover {
+    background: #eeeeee;
+}
+
+.choice-cell.disabled {
+    background: #d9d9d9;
+    cursor: default;
+}
+
+.choice-cell.undo-active {
+    cursor: pointer;
+}
+
+.choice-cell.match-green {
+    background: #90ee90;
+}
+
+.choice-cell.match-green:hover {
+    background: #90ee90;
+}
+
+.choice-cell.match-yellow {
+    background: yellow;
+}
+
+.choice-cell.match-yellow:hover {
+    background: yellow;
+}
+
+.choice-cell.debt-red {
+    background: #ff9999;
+}
+
+.choice-cell.debt-red:hover {
+    background: #ff9999;
+}
+
+.choice-cell.debt-red.disabled {
+    background: #ff9999;
+    cursor: default;
+}
+
+.choice-cell.debt-blue {
+    background: #ff9999;
+}
+
+.menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border: 2px solid black;
+    z-index: 1000;
+    width: 55px;
+}
+
+.menu div {
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid #999;
+    cursor: pointer;
+    font-size: 30px;
+    font-weight: bold;
+}
+
+.menu div:last-child {
+    border-bottom: none;
+}
+
+.menu div:hover {
+    background: #eeeeee;
+}
+
+.black {
+    color: black;
+}
+
+.red {
+    color: red;
+}
+
+.blue {
+    color: blue;
+}
+
+.delete-text {
+    font-size: 14px !important;
+    color: black;
+}
+
+.score {
+    font-size: 15px;
+    font-weight: bold;
+    margin-left: 3px;
+}
+
+.mark {
+    font-size: 32px;
+    font-weight: bold;
+}
+
+
+/* =========================================
+   HASIL AKHIR PENALTY
+========================================= */
+
+/* =========================================
+   HASIL AKHIR PENALTY
+========================================= */
+
+.hasil-akhir {
+    margin-top: 8px;
+    padding: 8px;
+    border: 2px solid black;
+    background: white;
+    font-size: 17px;
+    font-weight: bold;
+}
+
+.hasil-akhir-title {
+    margin-bottom: 5px;
+}
+
+.hasil-akhir-pemenang {
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+
+.hasil-akhir-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 17px;
+}
+
+.hasil-akhir-table td {
+    border: 1px solid black;
+    padding: 7px;
+}
+
+.hasil-akhir-table td:first-child {
+    text-align: left;
+}
+
+.hasil-akhir-table td:last-child {
+    text-align: center;
+    width: 70px;
+}
+
+</style>
+</head>
+
+
+<body>
+
+<h1>PENALTY SHOOTOUT</h1>
+
+<button id="tambahKotakButton"
+        onclick="buatKotak()">
+    Tambah Kotak
+</button>
+
+<button onclick="deleteKotak()">
+    Delete Kotak
+</button>
+
+<div id="container"></div>
+
+
+<script>
+
+
+/* =====================================================
+   HISTORY PENGISIAN MANUAL
+===================================================== */
+
+const historyPengisian = [];
+
+
+/* =====================================================
+   CEK APAKAH CELL ADALAH PENGISIAN MANUAL TERAKHIR
+===================================================== */
+
+function adalahCellTerakhir(cell) {
+
+    if (
+        historyPengisian.length === 0
+    ) {
+
+        return false;
+
+    }
+
+
+    return (
+        historyPengisian[
+            historyPengisian.length - 1
+        ].cell === cell
+    );
+
+}
+
+
+/* =====================================================
+   TAMBAH CELL KE HISTORY
+===================================================== */
+
+function tambahHistory(cell) {
+
+    historyPengisian.push({
+
+        cell: cell
+
+    });
+
+}
+
+
+/* =====================================================
+   BUAT KOTAK
+===================================================== */
+
+function buatKotak() {
+
+    if (pertandinganSudahBerakhir()) {
+        return;
+    }
+
+
+    const jumlahKotak =
+        document.querySelectorAll(".kotak").length;
+
+
+    if (
+        jumlahKotak === 2 &&
+        !skorKotak2Imbang()
+    ) {
+
+        return;
+
+    }
+
+
+    const container =
+        document.getElementById("container");
+
+    const nomorKotak =
+        jumlahKotak + 1;
+
+
+    const wrapper =
+        document.createElement("div");
+
+    wrapper.className =
+        "kotak-wrapper";
+
+
+    const tournamentInput =
+        document.createElement("input");
+
+    tournamentInput.type =
+        "text";
+
+    tournamentInput.className =
+        "tournament-input";
+
+    tournamentInput.placeholder =
+        "nama turnamen";
+
+
+    if (nomorKotak > 1) {
+
+        const inputPertama =
+            document.querySelector(
+                ".tournament-input"
+            );
+
+        tournamentInput.value =
+            inputPertama.value;
+
+        tournamentInput.readOnly =
+            true;
+
+        tournamentInput.classList.add(
+            "locked"
+        );
+
+    }
+
+
+    if (nomorKotak === 1) {
+
+        tournamentInput.addEventListener(
+            "input",
+            function() {
+
+                document
+                    .querySelectorAll(
+                        ".tournament-input.locked"
+                    )
+                    .forEach(function(input) {
+
+                        input.value =
+                            tournamentInput.value;
+
+                    });
+
+            }
+        );
+
+    }
+
+
+    wrapper.appendChild(
+        tournamentInput
+    );
+
+
+    const kotak =
+        document.createElement("div");
+
+    kotak.className =
+        "kotak";
+
+
+    for (let row = 0; row < 2; row++) {
+
+        for (let col = 0; col < 6; col++) {
+
+
+            if (col === 0) {
+
+                const cell =
+                    document.createElement("div");
+
+                cell.className =
+                    "cell text-cell";
+
+
+                const input =
+                    document.createElement("input");
+
+                input.type =
+                    "text";
+
+                input.placeholder =
+                    "nama tim";
+
+
+                if (nomorKotak > 1) {
+
+                    const inputPertama =
+                        document.querySelectorAll(
+                            ".text-cell input"
+                        )[row];
+
+                    input.value =
+                        inputPertama.value;
+
+                    input.readOnly =
+                        true;
+
+                    input.classList.add(
+                        "locked"
+                    );
+
+                }
+
+
+                if (nomorKotak === 1) {
+
+                    input.addEventListener(
+                        "input",
+                        function() {
+
+                            const semuaKotak =
+                                document.querySelectorAll(
+                                    ".kotak"
+                                );
+
+                            semuaKotak.forEach(
+                                function(k, index) {
+
+                                    if (index === 0)
+                                        return;
+
+                                    const target =
+                                        k.querySelectorAll(
+                                            ".text-cell input"
+                                        )[row];
+
+                                    target.value =
+                                        input.value;
+
+                                }
+                            );
+
+                        }
+                    );
+
+                }
+
+
+                cell.appendChild(
+                    input
+                );
+
+                kotak.appendChild(
+                    cell
+                );
+
+                continue;
+
+            }
+
+
+            const cell =
+                document.createElement("div");
+
+            cell.className =
+                "cell choice-cell";
+
+            cell.dataset.row =
+                row;
+
+            cell.dataset.col =
+                col;
+
+
+            const menu =
+                document.createElement("div");
+
+            menu.className =
+                "menu";
+
+
+            /* BLACK O */
+
+            const blackO =
+                document.createElement("div");
+
+            blackO.className =
+                "black";
+
+            blackO.textContent =
+                "O";
+
+            blackO.onclick =
+                function(e) {
+
+                    e.stopPropagation();
+
+                    setHasil(
+                        cell,
+                        "O",
+                        "black"
+                    );
+
+                };
+
+
+            /* BLACK X */
+
+            const blackX =
+                document.createElement("div");
+
+            blackX.className =
+                "black";
+
+            blackX.textContent =
+                "X";
+
+            blackX.onclick =
+                function(e) {
+
+                    e.stopPropagation();
+
+                    setHasil(
+                        cell,
+                        "X",
+                        "black"
+                    );
+
+                };
+
+
+            /* DELETE / UNDO */
+
+            const del =
+                document.createElement("div");
+
+            del.className =
+                "delete-text";
+
+            del.textContent =
+                "Delete";
+
+            del.onclick =
+                function(e) {
+
+                    e.stopPropagation();
+
+                    deleteHasil(
+                        cell
+                    );
+
+                };
+
+
+            menu.appendChild(
+                blackO
+            );
+
+            menu.appendChild(
+                blackX
+            );
+
+            menu.appendChild(
+                del
+            );
+
+
+            cell.appendChild(
+                menu
+            );
+
+
+            cell.addEventListener(
+                "click",
+                function(e) {
+
+                    e.stopPropagation();
+
+
+                    if (
+                        cell.classList.contains(
+                            "debt-red"
+                        )
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    if (
+                        cell.classList.contains(
+                            "disabled"
+                        )
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    if (
+                        cell.dataset.jenis
+                    ) {
+
+                        if (
+                            !adalahCellTerakhir(
+                                cell
+                            )
+                        ) {
+
+                            return;
+
+                        }
+
+                    }
+
+
+                    document
+                        .querySelectorAll(
+                            ".menu"
+                        )
+                        .forEach(
+                            function(m) {
+
+                                if (m !== menu)
+                                    m.style.display =
+                                        "none";
+
+                            }
+                        );
+
+
+                    menu.style.display =
+                        menu.style.display ===
+                        "block"
+                            ? "none"
+                            : "block";
+
+                }
+            );
+
+
+            kotak.appendChild(
+                cell
+            );
+
+        }
+
+    }
+
+
+    wrapper.appendChild(
+        kotak
+    );
+
+
+    container.appendChild(
+        wrapper
+    );
+
+
+    hitungSemua();
+
+}
+
+
+/* =====================================================
+   SET HASIL
+===================================================== */
+
+function setHasil(
+    cell,
+    jenis,
+    warna
+) {
+
+    if (
+        cell.classList.contains(
+            "disabled"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        cell.classList.contains(
+            "debt-red"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        cell.dataset.jenis
+    ) {
+
+        return;
+
+    }
+
+
+    const menu =
+        cell.querySelector(
+            ".menu"
+        );
+
+
+    /*
+     * Dropdown langsung ditutup
+     * setelah O / X dipilih.
+     */
+
+    if (menu) {
+
+        menu.style.display =
+            "none";
+
+    }
+
+
+    cell.innerHTML =
+        "";
+
+
+    if (menu) {
+
+        cell.appendChild(
+            menu
+        );
+
+    }
+
+
+    cell.dataset.jenis =
+        jenis;
+
+    cell.dataset.warna =
+        warna;
+
+
+    const mark =
+        document.createElement(
+            "span"
+        );
+
+    mark.className =
+        "mark " + warna;
+
+    mark.textContent =
+        jenis;
+
+
+    cell.appendChild(
+        mark
+    );
+
+
+    tambahHistory(
+        cell
+    );
+
+
+    hitungSemua();
+
+
+    /*
+     * Kotak 2 harus mengikuti
+     * cell yang terkunci di Kotak 1.
+     */
+
+    cekKesalahanKotak2(
+        cell
+    );
+
+}
+
+
+/* =====================================================
+   CEK KESALAHAN KOTAK 2
+===================================================== */
+
+function cekKesalahanKotak2(cell) {
+
+    const semuaKotak =
+        document.querySelectorAll(
+            ".kotak"
+        );
+
+
+    /*
+     * Hanya berlaku jika sudah ada
+     * Kotak 1 dan Kotak 2.
+     */
+
+    if (
+        semuaKotak.length < 2
+    ) {
+
+        return;
+
+    }
+
+
+    const kotakPertama =
+        semuaKotak[0];
+
+    const kotakKedua =
+        semuaKotak[1];
+
+
+    /*
+     * Hanya cell di Kotak 2.
+     */
+
+    if (
+        !kotakKedua.contains(cell)
+    ) {
+
+        return;
+
+    }
+
+
+    const row =
+        cell.dataset.row;
+
+    const col =
+        cell.dataset.col;
+
+
+    const cellKotak1 =
+        kotakPertama.querySelector(
+            `.choice-cell[data-row="${row}"][data-col="${col}"]`
+        );
+
+
+    if (!cellKotak1) {
+
+        return;
+
+    }
+
+
+    /*
+     * Hanya cell yang terkunci
+     * di Kotak 1 yang harus diikuti.
+     *
+     * Cell hitam = bukan target pengecekan.
+     * Cell merah / biru = target pengecekan.
+     */
+
+    if (
+        cellKotak1.dataset.warna !== "red" &&
+        cellKotak1.dataset.warna !== "blue"
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+     * Jika sama → lanjut.
+     */
+
+    if (
+        cell.dataset.jenis ===
+        cellKotak1.dataset.jenis
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+     * Jika berbeda → langsung game over.
+     */
+
+    akhiriKotak2();
+
+}
+
+
+/* =====================================================
+   AKHIRI KOTAK 2
+===================================================== */
+
+function akhiriKotak2() {
+
+    const semuaKotak =
+        document.querySelectorAll(
+            ".kotak"
+        );
+
+
+    if (
+        semuaKotak.length < 2
+    ) {
+
+        return;
+
+    }
+
+
+    const kotakKedua =
+        semuaKotak[1];
+
+
+    /*
+     * Tandai Kotak 2 sudah game over.
+     */
+
+    kotakKedua.dataset.gameOver =
+        "true";
+
+
+    /*
+     * Lock semua cell yang belum terisi.
+     */
+
+    kotakKedua
+        .querySelectorAll(
+            ".choice-cell"
+        )
+        .forEach(
+            function(cell) {
+
+                if (
+                    !cell.dataset.jenis
+                ) {
+
+                    cell.classList.add(
+                        "disabled"
+                    );
+
+                }
+
+
+                const menu =
+                    cell.querySelector(
+                        ".menu"
+                    );
+
+
+                if (menu) {
+
+                    menu.style.display =
+                        "none";
+
+                }
+
+            }
+        );
+
+
+    /*
+     * Tampilkan hasil akhir.
+     */
+
+    tampilkanHasilAkhir(
+        kotakKedua
+    );
+
+
+    updateTombolTambahKotak();
+
+}
+
+
+/* =====================================================
+   TAMPILKAN HASIL AKHIR PENALTY
+===================================================== */
+
+function tampilkanHasilAkhir(
+    kotak
+) {
+
+    const wrapper =
+        kotak.parentElement;
+
+
+    /*
+     * Jangan membuat hasil akhir
+     * lebih dari satu kali.
+     */
+
+    if (
+        wrapper.querySelector(
+            ".hasil-akhir"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+     * Nama tim.
+     */
+
+    const namaTim =
+        kotak.querySelectorAll(
+            ".text-cell input"
+        );
+
+
+    const namaAtas =
+        namaTim[0]
+            ? namaTim[0].value || "Tim Atas"
+            : "Tim Atas";
+
+
+    const namaBawah =
+        namaTim[1]
+            ? namaTim[1].value || "Tim Bawah"
+            : "Tim Bawah";
+
+
+    /*
+     * Ambil SCORE TERAKHIR
+     * masing-masing baris.
+     */
+
+    const skor =
+        [0, 0];
+
+
+    for (
+        let row = 0;
+        row < 2;
+        row++
+    ) {
+
+        const cells =
+            kotak.querySelectorAll(
+                `.choice-cell[data-row="${row}"]`
+            );
+
+
+        cells.forEach(
+            function(cell) {
+
+                const score =
+                    cell.querySelector(
+                        ".score"
+                    );
+
+
+                if (score) {
+
+                    skor[row] =
+                        Number(
+                            score.textContent
+                        ) || 0;
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /*
+     * Tentukan pemenang.
+     */
+
+    let tulisanPemenang;
+
+
+    if (
+        skor[0] > skor[1]
+    ) {
+
+        tulisanPemenang =
+            namaAtas +
+            " Menang!!!";
+
+    }
+
+    else if (
+        skor[1] > skor[0]
+    ) {
+
+        tulisanPemenang =
+            namaBawah +
+            " Menang!!!";
+
+    }
+
+    else {
+
+        tulisanPemenang =
+            "Hasil Imbang";
+
+    }
+
+
+    /*
+     * Buat kotak hasil akhir.
+     */
+
+    const hasil =
+        document.createElement(
+            "div"
+        );
+
+    hasil.className =
+        "hasil-akhir";
+
+
+    hasil.innerHTML =
+        `
+        <div class="hasil-akhir-title">
+            HASIL AKHIR PENALTY
+        </div>
+
+        <div class="hasil-akhir-pemenang">
+            ${tulisanPemenang}
+        </div>
+
+        <table class="hasil-akhir-table">
+
+            <tr>
+                <td>${namaAtas}</td>
+                <td>${skor[0]}</td>
+            </tr>
+
+            <tr>
+                <td>${namaBawah}</td>
+                <td>${skor[1]}</td>
+            </tr>
+
+        </table>
+        `;
+
+
+    wrapper.appendChild(
+        hasil
+    );
+
+}
+
+
+/* =====================================================
+   DELETE / UNDO HASIL
+===================================================== */
+
+function deleteHasil(
+    cell
+) {
+
+    if (
+        !adalahCellTerakhir(
+            cell
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    const kotak =
+        cell.closest(
+            ".kotak"
+        );
+
+
+    /*
+     * Tidak boleh undo setelah game over.
+     */
+
+    if (
+        kotak &&
+        kotak.dataset.gameOver ===
+            "true"
+    ) {
+
+        return;
+
+    }
+
+
+    historyPengisian.pop();
+
+
+    delete cell.dataset.jenis;
+    delete cell.dataset.warna;
+    delete cell.dataset.auto;
+    delete cell.dataset.autoBlue;
+
+
+    cell.classList.remove(
+        "debt-blue"
+    );
+
+
+    const menu =
+        cell.querySelector(
+            ".menu"
+        );
+
+
+    cell.innerHTML =
+        "";
+
+    if (menu) {
+
+        cell.appendChild(
+            menu
+        );
+
+    }
+
+
+    hitungSemua();
+
+}
+
+
+/* =====================================================
+   HITUNG SEMUA
+===================================================== */
+
+function hitungSemua() {
+
+    let skorSebelumnya =
+        [0, 0];
+
+
+    const semuaKotak =
+        document.querySelectorAll(
+            ".kotak"
+        );
+
+
+    semuaKotak.forEach(
+        function(kotak, index) {
+
+            let skor =
+                [
+                    skorSebelumnya[0],
+                    skorSebelumnya[1]
+                ];
+
+
+            const cells =
+                kotak.querySelectorAll(
+                    ".choice-cell"
+                );
+
+
+            cells.forEach(
+                function(cell) {
+
+                    cell.querySelectorAll(
+                        ".score"
+                    ).forEach(
+                        function(s) {
+
+                            s.remove();
+
+                        }
+                    );
+
+                }
+            );
+
+
+            for (
+                let row = 0;
+                row < 2;
+                row++
+            ) {
+
+                for (
+                    let col = 1;
+                    col <= 5;
+                    col++
+                ) {
+
+                    const cell =
+                        kotak.querySelector(
+                            `.choice-cell[data-row="${row}"][data-col="${col}"]`
+                        );
+
+
+                    if (!cell)
+                        continue;
+
+
+                    if (
+                        cell.dataset.warna ===
+                        "black"
+                    ) {
+
+                        if (
+                            cell.dataset.jenis ===
+                            "O"
+                        ) {
+
+                            skor[row]++;
+
+                        }
+
+
+                        const score =
+                            document.createElement(
+                                "span"
+                            );
+
+                        score.className =
+                            "score";
+
+                        score.textContent =
+                            skor[row];
+
+                        cell.appendChild(
+                            score
+                        );
+
+                    }
+
+                }
+
+            }
+
+
+            skorSebelumnya =
+                [
+                    skor[0],
+                    skor[1]
+                ];
+
+
+            /*
+             * Kotak 2:
+             * copy cell hitam dari Kotak 1.
+             */
+
+            if (index === 1) {
+
+                const kotakPertama =
+                    semuaKotak[0];
+
+
+                cells.forEach(
+                    function(cell) {
+
+                        const row =
+                            cell.dataset.row;
+
+                        const col =
+                            cell.dataset.col;
+
+
+                        const cellPertama =
+                            kotakPertama.querySelector(
+                                `.choice-cell[data-row="${row}"][data-col="${col}"]`
+                            );
+
+
+                        if (
+                            cellPertama &&
+                            cellPertama.dataset.warna ===
+                            "black"
+                        ) {
+
+                            cell.classList.add(
+                                "disabled"
+                            );
+
+
+                            const menu =
+                                cell.querySelector(
+                                    ".menu"
+                                );
+
+
+                            if (menu)
+                                menu.style.display =
+                                    "none";
+
+
+                            const oldMenu =
+                                cell.querySelector(
+                                    ".menu"
+                                );
+
+
+                            cell.innerHTML =
+                                "";
+
+
+                            const mark =
+                                document.createElement(
+                                    "span"
+                                );
+
+
+                            mark.className =
+                                "mark " +
+                                cellPertama.dataset.warna;
+
+
+                            mark.textContent =
+                                cellPertama.dataset.jenis;
+
+
+                            cell.appendChild(
+                                mark
+                            );
+
+
+                            const score =
+                                cellPertama.querySelector(
+                                    ".score"
+                                );
+
+
+                            if (score) {
+
+                                const scoreBaru =
+                                    document.createElement(
+                                        "span"
+                                    );
+
+
+                                scoreBaru.className =
+                                    "score";
+
+
+                                scoreBaru.textContent =
+                                    score.textContent;
+
+
+                                cell.appendChild(
+                                    scoreBaru
+                                );
+
+                            }
+
+
+                            if (oldMenu) {
+
+                                cell.appendChild(
+                                    oldMenu
+                                );
+
+                            }
+
+                        }
+
+                    }
+                );
+
+            }
+
+
+        }
+    );
+
+
+    /*
+     * Warna hijau dan kuning.
+     */
+
+    semuaKotak.forEach(
+        function(kotak) {
+
+            prosesPasanganHijau(
+                kotak
+            );
+
+            prosesPasanganKuning(
+                kotak
+            );
+
+        }
+    );
+
+
+    /*
+     * Hutang merah:
+     * hanya Kotak 1.
+     */
+
+    semuaKotak.forEach(
+        function(kotak, index) {
+
+            if (index !== 0) {
+                return;
+            }
+
+
+            prosesHutangMerah(
+                kotak
+            );
+
+        }
+    );
+
+
+    /*
+     * ATUR URUTAN PENGISIAN
+     */
+
+    prosesUrutanPengisian();
+
+
+    /*
+     * ATUR GAME OVER KOTAK 3+
+     */
+
+    prosesGameOver();
+
+
+    /*
+     * BLUE OTOMATIS
+     */
+
+    prosesBiruOtomatis();
+
+
+    /*
+     * Update tombol Tambah Kotak.
+     */
+
+    updateTombolTambahKotak();
+
+}
+
+
+/* =====================================================
+   BLUE OTOMATIS
+===================================================== */
+
+function prosesBiruOtomatis() {
+
+    const semuaKotak =
+        document.querySelectorAll(
+            ".kotak"
+        );
+
+
+    /*
+     * Hanya Kotak 1.
+     */
+
+    if (
+        semuaKotak.length === 0
+    ) {
+
+        return;
+
+    }
+
+
+    const kotak =
+        semuaKotak[0];
+
+
+    /*
+     * Hapus blue otomatis sebelumnya.
+     */
+
+    kotak
+    .querySelectorAll(
+        '.choice-cell[data-auto-blue="true"]'
+    )
+    .forEach(
+        function(cell) {
+
+            delete cell.dataset.jenis;
+            delete cell.dataset.warna;
+            delete cell.dataset.autoBlue;
+
+
+            cell.classList.remove(
+                "disabled"
+            );
+
+            cell.classList.remove(
+                "debt-blue"
+            );
+
+
+            const menu =
+                cell.querySelector(
+                    ".menu"
+                );
+
+
+            cell.innerHTML =
+                "";
+
+
+            if (menu) {
+
+                cell.appendChild(
+                    menu
+                );
+
+            }
+
+        }
+    );
+
+
+    /*
+     * Hitung cell bebas.
+     */
+
+    let jumlahCellBebas =
+        0;
+
+
+    kotak
+        .querySelectorAll(
+            ".choice-cell"
+        )
+        .forEach(
+            function(cell) {
+
+                if (
+                    !cell.dataset.jenis &&
+                    !cell.classList.contains(
+                        "debt-red"
+                    ) &&
+                    !cell.classList.contains(
+                        "disabled"
+                    )
+                ) {
+
+                    jumlahCellBebas++;
+
+                }
+
+            }
+        );
+
+
+    /*
+     * Hanya jika tinggal satu cell bebas.
+     */
+
+    if (
+        jumlahCellBebas !== 1
+    ) {
+
+        return;
+
+    }
+
+
+    let cellBebas =
+        null;
+
+
+    kotak
+        .querySelectorAll(
+            ".choice-cell"
+        )
+        .forEach(
+            function(cell) {
+
+                if (
+                    !cell.dataset.jenis &&
+                    !cell.classList.contains(
+                        "debt-red"
+                    ) &&
+                    !cell.classList.contains(
+                        "disabled"
+                    )
+                ) {
+
+                    cellBebas =
+                        cell;
+
+                }
+
+            }
+        );
+
+
+    if (!cellBebas) {
+        return;
+    }
+
+
+    /*
+     * Hanya baris bawah.
+     */
+
+    if (
+        cellBebas.dataset.row !==
+        "1"
+    ) {
+
+        return;
+
+    }
+
+
+    const col =
+        Number(
+            cellBebas.dataset.col
+        );
+
+
+    /*
+     * Tendangan ke-3.
+     */
+
+    if (col === 3) {
+
+        const atas3 =
+            kotak.querySelector(
+                '.choice-cell[data-row="0"][data-col="3"]'
+            );
+
+        const atas4 =
+            kotak.querySelector(
+                '.choice-cell[data-row="0"][data-col="4"]'
+            );
+
+
+        if (
+            !atas3 ||
+            !atas4 ||
+            !atas3.dataset.jenis ||
+            !atas4.dataset.jenis
+        ) {
+
+            return;
+
+        }
+
+
+        if (
+            atas3.dataset.jenis !==
+            atas4.dataset.jenis
+        ) {
+
+            isiBiruOtomatis(
+                cellBebas,
+                atas3.dataset.jenis
+            );
+
+        }
+
+
+        return;
+
+    }
+
+
+    /*
+     * Tendangan ke-4.
+     */
+
+    if (col === 4) {
+
+        const atas4 =
+            kotak.querySelector(
+                '.choice-cell[data-row="0"][data-col="4"]'
+            );
+
+        const atas5 =
+            kotak.querySelector(
+                '.choice-cell[data-row="0"][data-col="5"]'
+            );
+
+
+        if (
+            !atas4 ||
+            !atas5 ||
+            !atas4.dataset.jenis ||
+            !atas5.dataset.jenis
+        ) {
+
+            return;
+
+        }
+
+
+        if (
+            atas4.dataset.jenis !==
+            atas5.dataset.jenis
+        ) {
+
+            isiBiruOtomatis(
+                cellBebas,
+                atas4.dataset.jenis
+            );
+
+        }
+
+
+        return;
+
+    }
+
+
+    /*
+     * Tendangan ke-5.
+     */
+
+    if (col === 5) {
+
+        const atas5 =
+            kotak.querySelector(
+                '.choice-cell[data-row="0"][data-col="5"]'
+            );
+
+
+        if (
+            !atas5 ||
+            !atas5.dataset.jenis
+        ) {
+
+            return;
+
+        }
+
+
+        isiBiruOtomatis(
+            cellBebas,
+            atas5.dataset.jenis
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   ISI CELL BIRU OTOMATIS
+===================================================== */
+
+function isiBiruOtomatis(
+    cell,
+    jenis
+) {
+
+    if (
+        cell.dataset.jenis &&
+        cell.dataset.autoBlue !==
+            "true"
+    ) {
+
+        return;
+
+    }
+
+
+    const menu =
+        cell.querySelector(
+            ".menu"
+        );
+
+
+    cell.innerHTML =
+        "";
+
+
+    const mark =
+        document.createElement(
+            "span"
+        );
+
+
+    mark.className =
+        "mark blue";
+
+    mark.textContent =
+        jenis;
+
+
+    cell.appendChild(
+        mark
+    );
+
+
+    if (menu) {
+
+        cell.appendChild(
+            menu
+        );
+
+    }
+
+
+    cell.dataset.jenis =
+        jenis;
+
+    cell.dataset.warna =
+        "blue";
+
+    cell.dataset.autoBlue =
+        "true";
+
+
+    cell.classList.add(
+        "disabled"
+    );
+
+    cell.classList.add("debt-blue");
+
+}
+
+
+/* =====================================================
+   CEK SKOR AKHIR KOTAK 2
+===================================================== */
+
+function skorKotak2() {
+
+    const semuaKotak =
+        document.querySelectorAll(
+            ".kotak"
+        );
+
+
+    if (semuaKotak.length < 2) {
+
+        return null;
+
+    }
+
+
+    const skor =
+        [0, 0];
+
+
+    for (
+        let index = 0;
+        index < 2;
+        index++
+    ) {
+
+        const kotak =
+            semuaKotak[index];
+
+
+        for (
+            let row = 0;
+            row < 2;
+            row++
+        ) {
+
+            for (
+                let col = 1;
+                col <= 5;
+                col++
+            ) {
+
+                const cell =
+                    kotak.querySelector(
+                        `.choice-cell[data-row="${row}"][data-col="${col}"]`
+                    );
+
+
+                if (!cell)
+                    continue;
+
+
+                if (
+                    cell.dataset.warna ===
+                        "black" &&
+
+                    cell.dataset.jenis ===
+                        "O"
+                ) {
+
+                    skor[row]++;
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+    return skor;
+
+}
+
+
+/* =====================================================
+   CEK APAKAH SKOR KOTAK 2 IMBANG
+===================================================== */
+
+function skorKotak2Imbang() {
+
+    const skor =
+        skorKotak2();
+
+
+    if (!skor) {
+
+        return false;
+
+    }
+
+
+    return skor[0] === skor[1];
+
+}
+
+
+/* =====================================================
+   URUTAN PENGISIAN CELL
+===================================================== */
+
+function prosesUrutanPengisian() {
+
+    const semuaKotak =
+        document.querySelectorAll(
+            ".kotak"
+        );
+
+
+    semuaKotak.forEach(
+        function(kotak, index) {
+
+            let sebelumnyaTerisi =
+                true;
+
+
+            let kotakPertama =
+                null;
+
+
+            if (index === 1) {
+
+                kotakPertama =
+                    semuaKotak[0];
+
+            }
+
+
+            for (
+                let col = 1;
+                col <= 5;
+                col++
+            ) {
+
+                for (
+                    let row = 0;
+                    row < 2;
+                    row++
+                ) {
+
+                    const cell =
+                        kotak.querySelector(
+                            `.choice-cell[data-row="${row}"][data-col="${col}"]`
+                        );
+
+
+                    if (!cell)
+                        continue;
+
+
+                    let adalahCopyKotak2 =
+                        false;
+
+
+                    if (
+                        index === 1 &&
+                        kotakPertama
+                    ) {
+
+                        const cellPertama =
+                            kotakPertama.querySelector(
+                                `.choice-cell[data-row="${row}"][data-col="${col}"]`
+                            );
+
+
+                        if (
+                            cellPertama &&
+                            cellPertama.dataset.warna ===
+                                "black"
+                        ) {
+
+                            adalahCopyKotak2 =
+                                true;
+
+                        }
+
+                    }
+
+
+                    if (
+                        adalahCopyKotak2
+                    ) {
+
+                        cell.classList.add(
+                            "disabled"
+                        );
+
+
+                        const menu =
+                            cell.querySelector(
+                                ".menu"
+                            );
+
+
+                        if (menu) {
+
+                            menu.style.display =
+                                "none";
+
+                        }
+
+
+                        sebelumnyaTerisi =
+                            true;
+
+                        continue;
+
+                    }
+
+
+                    if (
+                        cell.classList.contains(
+                            "debt-red"
+                        )
+                    ) {
+
+                        cell.classList.add(
+                            "disabled"
+                        );
+
+
+                        const menu =
+                            cell.querySelector(
+                                ".menu"
+                            );
+
+
+                        if (menu) {
+
+                            menu.style.display =
+                                "none";
+
+                        }
+
+
+                        sebelumnyaTerisi =
+                            true;
+
+                        continue;
+
+                    }
+
+
+                    if (
+                        cell.dataset.jenis
+                    ) {
+
+                        sebelumnyaTerisi =
+                            true;
+
+                        continue;
+
+                    }
+
+
+                    if (
+                        sebelumnyaTerisi
+                    ) {
+
+                        cell.classList.remove(
+                            "disabled"
+                        );
+
+                    }
+
+                    else {
+
+                        cell.classList.add(
+                            "disabled"
+                        );
+
+
+                        const menu =
+                            cell.querySelector(
+                                ".menu"
+                            );
+
+
+                        if (menu) {
+
+                            menu.style.display =
+                                "none";
+
+                        }
+
+                    }
+
+
+                    sebelumnyaTerisi =
+                        false;
+
+                }
+
+            }
+
+        }
+    );
+
+
+    document
+        .querySelectorAll(
+            ".undo-active"
+        )
+        .forEach(
+            function(cell) {
+
+                cell.classList.remove(
+                    "undo-active"
+                );
+
+            }
+        );
+
+
+    if (
+        historyPengisian.length > 0
+    ) {
+
+        const cellTerakhir =
+            historyPengisian[
+                historyPengisian.length - 1
+            ].cell;
+
+
+        if (
+            cellTerakhir &&
+            document.body.contains(
+                cellTerakhir
+            )
+        ) {
+
+            cellTerakhir.classList.add(
+                "undo-active"
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   CEK PASANGAN OPPOSITE
+===================================================== */
+
+function cariPasanganOpposite(
+    kotak
+) {
+
+    for (
+        let col = 1;
+        col <= 5;
+        col++
+    ) {
+
+        const atas =
+            kotak.querySelector(
+                `.choice-cell[data-row="0"][data-col="${col}"]`
+            );
+
+        const bawah =
+            kotak.querySelector(
+                `.choice-cell[data-row="1"][data-col="${col}"]`
+            );
+
+
+        if (!atas || !bawah)
+            continue;
+
+
+        if (
+            atas.dataset.warna ===
+                "black" &&
+
+            bawah.dataset.warna ===
+                "black" &&
+
+            (
+                (
+                    atas.dataset.jenis ===
+                        "O" &&
+                    bawah.dataset.jenis ===
+                        "X"
+                )
+                ||
+                (
+                    atas.dataset.jenis ===
+                        "X" &&
+                    bawah.dataset.jenis ===
+                        "O"
+                )
+            )
+        ) {
+
+            return col;
+
+        }
+
+    }
+
+
+    return null;
+
+}
+
+
+/* =====================================================
+   GAME OVER KOTAK 3+
+===================================================== */
+
+function prosesGameOver() {
+
+    const semuaKotak =
+        document.querySelectorAll(
+            ".kotak"
+        );
+
+
+    semuaKotak.forEach(
+        function(kotak, index) {
+
+            if (index < 2)
+                return;
+
+
+            /*
+             * Jika kotak sudah game over,
+             * jangan proses ulang.
+             */
+
+            if (
+                kotak.dataset.gameOver ===
+                "true"
+            ) {
+
+                return;
+
+            }
+
+
+            const kolomGameOver =
+                cariPasanganOpposite(
+                    kotak
+                );
+
+
+            if (
+                kolomGameOver === null
+            ) {
+
+                return;
+
+            }
+
+
+            /*
+             * Tandai game over.
+             */
+
+            kotak.dataset.gameOver =
+                "true";
+
+
+            /*
+             * Lock semua cell setelah
+             * hutang penalty terjadi.
+             */
+
+            for (
+                let col = kolomGameOver + 1;
+                col <= 5;
+                col++
+            ) {
+
+                for (
+                    let row = 0;
+                    row < 2;
+                    row++
+                ) {
+
+                    const cell =
+                        kotak.querySelector(
+                            `.choice-cell[data-row="${row}"][data-col="${col}"]`
+                        );
+
+
+                    if (!cell)
+                        continue;
+
+
+                    cell.classList.add(
+                        "disabled"
+                    );
+
+
+                    const menu =
+                        cell.querySelector(
+                            ".menu"
+                        );
+
+
+                    if (menu)
+                        menu.style.display =
+                            "none";
+
+                }
+
+            }
+
+
+            /*
+             * Tampilkan hasil akhir.
+             */
+
+            tampilkanHasilAkhir(
+                kotak
+            );
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   CEK APAKAH PERTANDINGAN SUDAH BERAKHIR
+===================================================== */
+
+function pertandinganSudahBerakhir() {
+
+    const semuaKotak =
+        document.querySelectorAll(
+            ".kotak"
+        );
+
+
+    /*
+     * Kotak 2 game over karena
+     * salah mengikuti Kotak 1.
+     */
+
+    if (
+        semuaKotak.length >= 2 &&
+        semuaKotak[1].dataset.gameOver ===
+            "true"
+    ) {
+
+        return true;
+
+    }
+
+
+    /*
+     * Kotak 3+ game over karena
+     * pasangan opposite / hutang penalty.
+     */
+
+    for (
+        let index = 2;
+        index < semuaKotak.length;
+        index++
+    ) {
+
+        if (
+            semuaKotak[index].dataset.gameOver ===
+            "true"
+        ) {
+
+            return true;
+
+        }
+
+
+        const kolom =
+            cariPasanganOpposite(
+                semuaKotak[index]
+            );
+
+
+        if (kolom !== null) {
+
+            return true;
+
+        }
+
+    }
+
+
+    return false;
+
+}
+
+
+/* =====================================================
+   TOMBOL TAMBAH KOTAK
+===================================================== */
+
+function updateTombolTambahKotak() {
+
+    const tombol =
+        document.getElementById(
+            "tambahKotakButton"
+        );
+
+
+    if (!tombol)
+        return;
+
+
+    const jumlahKotak =
+        document.querySelectorAll(
+            ".kotak"
+        ).length;
+
+
+    if (
+        pertandinganSudahBerakhir()
+    ) {
+
+        tombol.disabled =
+            true;
+
+        return;
+
+    }
+
+
+    if (
+        jumlahKotak === 1
+    ) {
+
+        tombol.disabled =
+            false;
+
+        return;
+
+    }
+
+
+    if (
+        jumlahKotak === 2
+    ) {
+
+        tombol.disabled =
+            !skorKotak2Imbang();
+
+        return;
+
+    }
+
+
+    tombol.disabled =
+        false;
+
+}
+
+
+/* =====================================================
+   PASANGAN HIJAU
+===================================================== */
+
+function prosesPasanganHijau(
+    kotak
+) {
+
+    kotak
+        .querySelectorAll(
+            ".choice-cell"
+        )
+        .forEach(
+            function(cell) {
+
+                cell.classList.remove(
+                    "match-green"
+                );
+
+            }
+        );
+
+
+    for (
+        let col = 1;
+        col <= 5;
+        col++
+    ) {
+
+        const atas =
+            kotak.querySelector(
+                `.choice-cell[data-row="0"][data-col="${col}"]`
+            );
+
+        const bawah =
+            kotak.querySelector(
+                `.choice-cell[data-row="1"][data-col="${col}"]`
+            );
+
+
+        if (
+            atas &&
+            bawah &&
+
+            atas.dataset.warna ===
+                "black" &&
+
+            bawah.dataset.warna ===
+                "black" &&
+
+            atas.dataset.jenis ===
+                bawah.dataset.jenis
+        ) {
+
+            atas.classList.add(
+                "match-green"
+            );
+
+            bawah.classList.add(
+                "match-green"
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   PASANGAN KUNING
+===================================================== */
+
+function prosesPasanganKuning(
+    kotak
+) {
+
+    kotak
+        .querySelectorAll(
+            ".choice-cell"
+        )
+        .forEach(
+            function(cell) {
+
+                cell.classList.remove(
+                    "match-yellow"
+                );
+
+            }
+        );
+
+
+    const kolomValid =
+        [];
+
+
+    for (
+        let col = 1;
+        col <= 5;
+        col++
+    ) {
+
+        const atas =
+            kotak.querySelector(
+                `.choice-cell[data-row="0"][data-col="${col}"]`
+            );
+
+        const bawah =
+            kotak.querySelector(
+                `.choice-cell[data-row="1"][data-col="${col}"]`
+            );
+
+
+        if (!atas || !bawah)
+            continue;
+
+
+        if (
+            atas.dataset.warna !==
+                "black" ||
+
+            bawah.dataset.warna !==
+                "black"
+        ) {
+
+            continue;
+
+        }
+
+
+        if (
+            !(
+                (
+                    atas.dataset.jenis ===
+                        "X" &&
+
+                    bawah.dataset.jenis ===
+                        "O"
+                )
+                ||
+                (
+                    atas.dataset.jenis ===
+                        "O" &&
+
+                    bawah.dataset.jenis ===
+                        "X"
+                )
+            )
+        ) {
+
+            continue;
+
+        }
+
+
+        kolomValid.push({
+
+            col: col,
+
+            atas: atas,
+
+            bawah: bawah,
+
+            polaAtas:
+                atas.dataset.jenis,
+
+            polaBawah:
+                bawah.dataset.jenis
+
+        });
+
+    }
+
+
+    const sudahDipakai =
+        new Set();
+
+
+    for (
+        let i = 0;
+        i < kolomValid.length;
+        i++
+    ) {
+
+        const kolomA =
+            kolomValid[i];
+
+
+        if (
+            sudahDipakai.has(
+                kolomA.col
+            )
+        ) {
+
+            continue;
+
+        }
+
+
+        for (
+            let j = i + 1;
+            j < kolomValid.length;
+            j++
+        ) {
+
+            const kolomB =
+                kolomValid[j];
+
+
+            if (
+                sudahDipakai.has(
+                    kolomB.col
+                )
+            ) {
+
+                continue;
+
+            }
+
+
+            if (
+                kolomA.polaAtas !==
+                    kolomB.polaAtas &&
+
+                kolomA.polaBawah !==
+                    kolomB.polaBawah
+            ) {
+
+                kolomA.atas.classList.add(
+                    "match-yellow"
+                );
+
+                kolomA.bawah.classList.add(
+                    "match-yellow"
+                );
+
+                kolomB.atas.classList.add(
+                    "match-yellow"
+                );
+
+                kolomB.bawah.classList.add(
+                    "match-yellow"
+                );
+
+
+                sudahDipakai.add(
+                    kolomA.col
+                );
+
+                sudahDipakai.add(
+                    kolomB.col
+                );
+
+
+                break;
+
+            }
+
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   HUTANG PENALTY → MERAH OTOMATIS
+===================================================== */
+
+function prosesHutangMerah(
+    kotak
+) {
+
+    kotak
+        .querySelectorAll(
+            '.choice-cell[data-auto="true"]'
+        )
+        .forEach(
+            function(cell) {
+
+                delete cell.dataset.jenis;
+                delete cell.dataset.warna;
+                delete cell.dataset.auto;
+
+
+                cell.classList.remove(
+                    "debt-red"
+                );
+
+                cell.classList.remove(
+                    "disabled"
+                );
+
+
+                const menu =
+                    cell.querySelector(
+                        ".menu"
+                    );
+
+
+                cell.innerHTML =
+                    "";
+
+
+                if (menu) {
+
+                    cell.appendChild(
+                        menu
+                    );
+
+                }
+
+            }
+        );
+
+
+    const semuaPasangan =
+        [];
+
+
+    for (
+        let col = 1;
+        col <= 5;
+        col++
+    ) {
+
+        const atas =
+            kotak.querySelector(
+                `.choice-cell[data-row="0"][data-col="${col}"]`
+            );
+
+        const bawah =
+            kotak.querySelector(
+                `.choice-cell[data-row="1"][data-col="${col}"]`
+            );
+
+
+        if (!atas || !bawah)
+            continue;
+
+
+        if (
+            atas.dataset.warna !==
+                "black" ||
+
+            bawah.dataset.warna !==
+                "black"
+        ) {
+
+            continue;
+
+        }
+
+
+        if (
+            (
+                atas.dataset.jenis ===
+                    "X" &&
+
+                bawah.dataset.jenis ===
+                    "O"
+            )
+            ||
+            (
+                atas.dataset.jenis ===
+                    "O" &&
+
+                bawah.dataset.jenis ===
+                    "X"
+            )
+        ) {
+
+            semuaPasangan.push({
+
+                col: col,
+
+                polaAtas:
+                    atas.dataset.jenis,
+
+                polaBawah:
+                    bawah.dataset.jenis
+
+            });
+
+        }
+
+    }
+
+
+    const sudahDibayar =
+        new Set();
+
+
+    for (
+        let i = 0;
+        i < semuaPasangan.length;
+        i++
+    ) {
+
+        if (
+            sudahDibayar.has(i)
+        ) {
+
+            continue;
+
+        }
+
+
+        for (
+            let j = i + 1;
+            j < semuaPasangan.length;
+            j++
+        ) {
+
+            if (
+                sudahDibayar.has(j)
+            ) {
+
+                continue;
+
+            }
+
+
+            const a =
+                semuaPasangan[i];
+
+            const b =
+                semuaPasangan[j];
+
+
+            if (
+                a.polaAtas !==
+                    b.polaAtas &&
+
+                a.polaBawah !==
+                    b.polaBawah
+            ) {
+
+                sudahDibayar.add(
+                    i
+                );
+
+                sudahDibayar.add(
+                    j
+                );
+
+                break;
+
+            }
+
+        }
+
+    }
+
+
+    const hutangBelumDibayar =
+        [];
+
+
+    for (
+        let i = 0;
+        i < semuaPasangan.length;
+        i++
+    ) {
+
+        if (
+            !sudahDibayar.has(i)
+        ) {
+
+            hutangBelumDibayar.push(
+                semuaPasangan[i]
+            );
+
+        }
+
+    }
+
+
+    const posisiMerah =
+        [5, 4];
+
+
+    hutangBelumDibayar
+        .slice(0, 2)
+        .forEach(
+            function(hutang, index) {
+
+                const colTujuan =
+                    posisiMerah[index];
+
+
+                const cellAtas =
+                    kotak.querySelector(
+                        `.choice-cell[data-row="0"][data-col="${colTujuan}"]`
+                    );
+
+                const cellBawah =
+                    kotak.querySelector(
+                        `.choice-cell[data-row="1"][data-col="${colTujuan}"]`
+                    );
+
+
+                if (
+                    !cellAtas ||
+                    !cellBawah
+                ) {
+
+                    return;
+
+                }
+
+
+                let jenisAtas;
+                let jenisBawah;
+
+
+                if (
+                    hutang.polaAtas ===
+                        "O" &&
+
+                    hutang.polaBawah ===
+                        "X"
+                ) {
+
+                    jenisAtas =
+                        "X";
+
+                    jenisBawah =
+                        "O";
+
+                }
+
+                else {
+
+                    jenisAtas =
+                        "O";
+
+                    jenisBawah =
+                        "X";
+
+                }
+
+
+                isiMerahOtomatis(
+                    cellAtas,
+                    jenisAtas
+                );
+
+                isiMerahOtomatis(
+                    cellBawah,
+                    jenisBawah
+                );
+
+            }
+        );
+
+}
+
+
+/* =====================================================
+   ISI CELL MERAH OTOMATIS
+===================================================== */
+
+function isiMerahOtomatis(
+    cell,
+    jenis
+) {
+
+    if (
+        cell.dataset.jenis &&
+        cell.dataset.auto !==
+            "true"
+    ) {
+
+        return;
+
+    }
+
+
+    const menu =
+        cell.querySelector(
+            ".menu"
+        );
+
+
+    cell.innerHTML =
+        "";
+
+
+    const mark =
+        document.createElement(
+            "span"
+        );
+
+
+    mark.className =
+        "mark red";
+
+    mark.textContent =
+        jenis;
+
+
+    cell.appendChild(
+        mark
+    );
+
+
+    if (menu) {
+
+        cell.appendChild(
+            menu
+        );
+
+    }
+
+
+    cell.dataset.jenis =
+        jenis;
+
+    cell.dataset.warna =
+        "red";
+
+    cell.dataset.auto =
+        "true";
+
+
+    cell.classList.add(
+        "debt-red"
+    );
+
+    cell.classList.add(
+        "disabled"
+    );
+
+}
+
+
+/* =====================================================
+   DELETE KOTAK TERAKHIR
+===================================================== */
+
+function deleteKotak() {
+
+    const wrappers =
+        document.querySelectorAll(
+            ".kotak-wrapper"
+        );
+
+
+    if (
+        wrappers.length <= 1
+    ) {
+
+        return;
+
+    }
+
+
+    const kotakYangDihapus =
+        wrappers[
+            wrappers.length - 1
+        ].querySelector(
+            ".kotak"
+        );
+
+
+    for (
+        let i =
+            historyPengisian.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        if (
+            kotakYangDihapus.contains(
+                historyPengisian[i].cell
+            )
+        ) {
+
+            historyPengisian.splice(
+                i,
+                1
+            );
+
+        }
+
+    }
+
+
+    wrappers[
+        wrappers.length - 1
+    ].remove();
+
+
+    hitungSemua();
+
+}
+
+
+/* =====================================================
+   KLIK DI LUAR MENU
+===================================================== */
+
+document.addEventListener(
+    "click",
+    function() {
+
+        document
+            .querySelectorAll(
+                ".menu"
+            )
+            .forEach(
+                function(menu) {
+
+                    menu.style.display =
+                        "none";
+
+                }
+            );
+
+    }
+);
+
+
+/* =====================================================
+   BUAT KOTAK 1 OTOMATIS
+===================================================== */
+
+buatKotak();
+
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+
+    window.addEventListener("load", () => {
+
+        navigator.serviceWorker.register("sw.js")
+            .then(registration => {
+                console.log("Service Worker aktif:", registration.scope);
+            })
+            .catch(error => {
+                console.error("Service Worker gagal:", error);
+            });
+
+    });
+
+}
+</script>
+
+</body>
+</html>
