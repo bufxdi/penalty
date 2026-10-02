@@ -1138,16 +1138,15 @@ function tampilkanHasilAkhir(
      * Tentukan pemenang.
      */
 
-    let tulisanPemenang;
+    let hasilPemenang;
 
 
     if (
         skor[0] > skor[1]
     ) {
 
-        tulisanPemenang =
-            namaAtas +
-            " Menang!!!";
+        hasilPemenang =
+            `${namaAtas} Menang!!! (${skor[0]} - ${skor[1]})`;
 
     }
 
@@ -1155,16 +1154,15 @@ function tampilkanHasilAkhir(
         skor[1] > skor[0]
     ) {
 
-        tulisanPemenang =
-            namaBawah +
-            " Menang!!!";
+        hasilPemenang =
+            `${namaBawah} Menang!!! (${skor[1]} - ${skor[0]})`;
 
     }
 
     else {
 
-        tulisanPemenang =
-            "Hasil Imbang";
+        hasilPemenang =
+            `Hasil Imbang (${skor[0]} - ${skor[1]})`;
 
     }
 
@@ -1188,20 +1186,52 @@ function tampilkanHasilAkhir(
             HASIL AKHIR PENALTY
         </div>
 
-        <div class="hasil-akhir-pemenang">
-            ${tulisanPemenang}
+        <div>
+            ${hasilPemenang}
         </div>
 
-        <table class="hasil-akhir-table">
+        <table style="
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        ">
 
             <tr>
-                <td>${namaAtas}</td>
-                <td>${skor[0]}</td>
+
+                <td style="
+                    border: 1px solid black;
+                    padding: 5px;
+                ">
+                    ${namaAtas}
+                </td>
+
+                <td style="
+                    border: 1px solid black;
+                    padding: 5px;
+                    text-align: center;
+                ">
+                    ${skor[0]}
+                </td>
+
             </tr>
 
             <tr>
-                <td>${namaBawah}</td>
-                <td>${skor[1]}</td>
+
+                <td style="
+                    border: 1px solid black;
+                    padding: 5px;
+                ">
+                    ${namaBawah}
+                </td>
+
+                <td style="
+                    border: 1px solid black;
+                    padding: 5px;
+                    text-align: center;
+                ">
+                    ${skor[1]}
+                </td>
+
             </tr>
 
         </table>
@@ -1213,7 +1243,6 @@ function tampilkanHasilAkhir(
     );
 
 }
-
 
 /* =====================================================
    DELETE / UNDO HASIL
